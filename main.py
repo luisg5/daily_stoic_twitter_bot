@@ -25,4 +25,14 @@ if __name__ == '__main__':
     print(r)
     print(r.json())
 
+    url = 'https://api.twitter.com/1.1/statuses/update.json'
+    data = {
+        'status': 'Hello World! This is the Daily Stoic Bot!'
+    }
+
+    r = requests.post(url, data=data, auth=auth)
+    print(r)
+    print(r.text)
+    print(r.json())
+
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
