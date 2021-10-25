@@ -2,7 +2,9 @@
 import os
 
 import requests
+import sqlite3
 
+from typing import Dict, Union
 from requests import RequestException
 from requests_oauthlib import OAuth1
 from dotenv import load_dotenv
@@ -28,11 +30,15 @@ class TwitterApiClient:
         """"""
         pass
 
-    def post_tweet(self, data: {str: str}):
+    def post_tweet(self, data: Union[str, Dict[str, str]]):
         """"""
         url = 'https://api.twitter.com/1.1/statuses/update.json'
 
         try:
+            if type(data) is str:
+                # Shortcut when only posting a status.
+                data = {'status': data}
+
             response = requests.post(url, data=data, auth=self.header_oauth)
             _ = response.json()
 
@@ -51,19 +57,24 @@ class StoicQuote:
 
 
 class DailyStoicBot:
-    def __init__(self):
+    def __init__(self, db_cursor: sqlite3.Cursor):
         """"""
         self.twitter_api_client = TwitterApiClient()
+        self.db_cursor = db_cursor
 
     def start(self):
         """"""
+        # TODO: Add error handling, so a quote is not saved into the database if there is an error posting it to
+        #  twitter. Also, add error handling when error posting to twitter, such as retries.
         random_stoic_quote = self._get_random_daily_stoic_quote()
-        print(random_stoic_quote.id)
-        print(random_stoic_quote.quote)
-        print(random_stoic_quote.author)
-        print(random_stoic_quote.source)
-        print(random_stoic_quote.keywords)
-        print(random_stoic_quote.document_with_weights)
+
+        twitter_status = '"{}" - {} / {}'.format(
+            random_stoic_quote.quote, random_stoic_quote.author, random_stoic_quote.source)
+
+        self.twitter_api_client.post_tweet(twitter_status)
+
+        # Store the stoic quote id, to indicate it has already been tweeted.
+        self.db_cursor.execute("INSERT INTO tweeted_stoic_quotes VALUES (?)", (random_stoic_quote.id,))
 
     def _get_random_daily_stoic_quote(self):
         """"""
@@ -89,10 +100,35 @@ class DailyStoicBot:
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    # Load the environment variables to connect to the Twitter API.
     load_dotenv()
 
-    daily_stoic_bot = DailyStoicBot()
-    daily_stoic_bot.start()
+    # Create a connection to the database that stores which stoic quotes have been tweeted.
+    con = None
+
+    try:
+        # Create a connection to the database.
+        con = sqlite3.connect(os.getenv('DB_NAME'))
+
+        # Create a cursor.
+        cursor = con.cursor()
+
+        # Create the table that stores which quotes have already been tweeted.
+        cursor.execute('CREATE TABLE IF NOT EXISTS tweeted_stoic_quotes (id INTEGER PRIMARY KEY)')
+
+        # Create and start the twitter bot.
+        daily_stoic_bot = DailyStoicBot(cursor)
+        daily_stoic_bot.start()
+
+        # Commit the changes.
+        con.commit()
+
+    except Exception as ex:
+        print('__main__(Exception): {}'.format(str(ex)))
+
+    finally:
+        if con:
+            con.close()
 
     # url = 'https://api.twitter.com/1.1/statuses/update.json'
     # data = {
