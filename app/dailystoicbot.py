@@ -55,25 +55,32 @@ class DailyStoicBot:
             except RequestException as request_ex:
                 logger.warning('FAILURE_ATTEMPT_{} {}'.format(i, twitter_status))
 
-    def _get_random_daily_stoic_quote(self):
+    def _get_random_daily_stoic_quote(self, retries: int = 3):
         """"""
         random_stoic_quote_url = 'https://stoic-server.herokuapp.com/random'
-        try:
-            response = requests.get(random_stoic_quote_url)
-            data = response.json()
 
-            if not data:
-                # TODO: Log and handle this case.
-                logger.critical('Daily Stoic Quote API returned an empty list response, no quote.')
-                raise Exception('Daily Stoic Quote API returned an empty list response, no quote.')
+        for i in range(retries):
+            try:
+                # Make a request for a random stoic quote.
+                response = requests.get(random_stoic_quote_url)
+                data = response.json()
 
-            quote_data = data[0]
-            if any(key in quote_data for key in ('status', 'statusCode', 'message')):
-                print(quote_data['message'])  # Log this, it might be a failed response.
-            else:
-                # TODO: Save id in a personal DB. Later add code to ensure same quote is not tweeted multiple times.
-                return StoicQuote(quote_data)
+                # Retrieve the quote object from the data returned.
+                quote_data = data[0]
+                if any(key in quote_data for key in ('status', 'statusCode', 'message')):
+                    if i == (retries - 1):
+                        # On final retry, was not able to retrieve quote.
+                        logger.error('Failure to retrieve quote after maximum number of retries - %s', data)
+                        raise Exception('Failure to retrieve quote after maximum number of retries - %s', data)
 
-        except RequestException as request_ex:
-            logger.error(str(request_ex))
-            raise request_ex
+                    # Log the failure to retrieve the quote.
+                    logger.warning('An error occurred when retrieving a stoic quote from the API - %s', data)
+
+                    # Continue to the next retry.
+                    continue
+                else:
+                    return StoicQuote(quote_data)
+
+            except RequestException as request_ex:
+                logger.error(str(request_ex))
+                raise request_ex
