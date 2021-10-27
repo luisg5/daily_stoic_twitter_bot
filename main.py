@@ -9,8 +9,17 @@ from requests import RequestException
 from requests_oauthlib import OAuth1
 from dotenv import load_dotenv
 
+from app.utils import get_logger
+
+# Load the environment variables to connect to the Twitter API.
+load_dotenv()
+
 # Note: Access protected resources. OAuth1 access tokens typically do not expire
 # and may be re-used until revoked by the user or yourself.
+
+# Get the logger to use. Note: get_logger() expects `LOGGER_NAME` env var to be set, so `load_dotenv` is called before.
+# TODO: Weed out this dependency issue in future iteration.
+main_logger = get_logger()
 
 
 # Press Shift+F10 to execute it or replace it with your code.
@@ -42,8 +51,9 @@ class TwitterApiClient:
             response = requests.post(url, data=data, auth=self.header_oauth)
             _ = response.json()
 
-        except RequestException as ex:
-            print(str(ex))
+        except RequestException as request_ex:
+            main_logger.error(str(request_ex))
+            raise request_ex
 
 
 class StoicQuote:
@@ -85,6 +95,7 @@ class DailyStoicBot:
 
             if not data:
                 # TODO: Log and handle this case.
+                main_logger.critical('Daily Stoic Quote API returned an empty list response, no quote.')
                 raise Exception('Daily Stoic Quote API returned an empty list response, no quote.')
 
             quote_data = data[0]
@@ -94,15 +105,13 @@ class DailyStoicBot:
                 # TODO: Save id in a personal DB. Later add code to ensure same quote is not tweeted multiple times.
                 return StoicQuote(quote_data)
 
-        except RequestException as ex:
-            print(str(ex))
+        except RequestException as request_ex:
+            main_logger.error(str(request_ex))
+            raise request_ex
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # Load the environment variables to connect to the Twitter API.
-    load_dotenv()
-
     # Create a connection to the database that stores which stoic quotes have been tweeted.
     con = None
 
@@ -123,8 +132,8 @@ if __name__ == '__main__':
         # Commit the changes.
         con.commit()
 
-    except Exception as ex:
-        print('__main__(Exception): {}'.format(str(ex)))
+    except Exception as general_exception:
+        main_logger.error(str(general_exception))
 
     finally:
         if con:
