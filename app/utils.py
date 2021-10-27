@@ -3,10 +3,10 @@ import logging
 import os
 
 
-def get_logger():
+def get_logger(logger_name):
     """"""
     # Create the logger and set it up.
-    logger = logging.getLogger(os.getenv('LOGGER_NAME'))
+    logger = logging.getLogger(logger_name)
     logger.setLevel(level=logging.INFO)
 
     # Create the formatter and add it to the file handler.
@@ -15,7 +15,7 @@ def get_logger():
     )
 
     # Create the file handler and set it up.
-    fh = logging.FileHandler("{}.log".format(os.getenv('LOGGER_NAME')))
+    fh = logging.FileHandler("{}.log".format(os.getenv('LOG_FILE_NAME')))
     fh.setLevel(level=logging.INFO)
     fh.setFormatter(formatter)
 
