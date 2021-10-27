@@ -10,8 +10,11 @@ from requests import RequestException
 
 from app.utils import get_logger
 
-# Grab a logger to use.
+# Get the logger for this module.
 logger = get_logger(__name__)
+
+# Note: Access protected resources. OAuth1 access tokens typically do not expire
+# and may be re-used until revoked by the user or yourself.
 
 
 class TwitterApiClient:

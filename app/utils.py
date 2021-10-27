@@ -1,6 +1,7 @@
 # Utility functions used in the application.
 import logging
-import os
+
+LOG_FILE_NAME = 'DAILY_STOIC_TWITTER_BOT'
 
 
 def get_logger(logger_name):
@@ -15,7 +16,7 @@ def get_logger(logger_name):
     )
 
     # Create the file handler and set it up.
-    fh = logging.FileHandler("{}.log".format(os.getenv('LOG_FILE_NAME')))
+    fh = logging.FileHandler("{}.log".format(LOG_FILE_NAME))
     fh.setLevel(level=logging.INFO)
     fh.setFormatter(formatter)
 

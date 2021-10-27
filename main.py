@@ -10,16 +10,9 @@ from app.utils import get_logger
 from app.dailystoicbot import DailyStoicBot
 
 # Load the environment variables to connect to the Twitter API.
-
-# TODO: Note that DailyStoicBot is read into memory before the environment variables, so the logger file handler
-#  name is not set. Fix this order.
 load_dotenv()
 
-# Note: Access protected resources. OAuth1 access tokens typically do not expire
-# and may be re-used until revoked by the user or yourself.
-
-# Get the logger to use. Note: get_logger() expects `LOGGER_NAME` env var to be set, so `load_dotenv` is called before.
-# TODO: Weed out this dependency issue in future iteration.
+# Get the logger for this module.
 main_logger = get_logger(__name__)
 
 
@@ -51,5 +44,3 @@ if __name__ == '__main__':
     finally:
         if con:
             con.close()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
