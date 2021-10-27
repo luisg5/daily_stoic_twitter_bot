@@ -32,19 +32,28 @@ class DailyStoicBot:
         self.twitter_api_client = TwitterApiClient()
         self.db_cursor = db_cursor
 
-    def start(self):
+    def start(self, retries: int = 3):
         """"""
-        # TODO: Add error handling, so a quote is not saved into the database if there is an error posting it to
-        #  twitter. Also, add error handling when error posting to twitter, such as retries.
         random_stoic_quote = self._get_random_daily_stoic_quote()
 
         twitter_status = '"{}" - {} / {}'.format(
             random_stoic_quote.quote, random_stoic_quote.author, random_stoic_quote.source)
 
-        self.twitter_api_client.post_tweet(twitter_status)
+        # Attempt to post the stoic tweet, with a maximum number of 3 retries.
+        for i in range(retries):
+            try:
+                # Post the tweet using the client.
+                self.twitter_api_client.post_tweet(twitter_status)
 
-        # Store the stoic quote id, to indicate it has already been tweeted.
-        self.db_cursor.execute("INSERT INTO tweeted_stoic_quotes VALUES (?)", (random_stoic_quote.id,))
+                # Store the stoic quote id, to indicate it has already been tweeted.
+                self.db_cursor.execute("INSERT INTO tweeted_stoic_quotes VALUES (?)", (random_stoic_quote.id,))
+
+                # Tweet was posted and inserted into the database successfully.
+                logger.info('SUCCESS {}'.format(twitter_status))
+                break
+
+            except RequestException as request_ex:
+                logger.warning('FAILURE_ATTEMPT_{} {}'.format(i, twitter_status))
 
     def _get_random_daily_stoic_quote(self):
         """"""
